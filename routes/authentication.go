@@ -63,7 +63,7 @@ func (ac *AuthenticationController) finishRequest(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"access_token": token})
 }
 
-func (ac *AuthenticationController) InitAuthenticationRouter(r *gin.Engine) {
+func (ac *AuthenticationController) Init(r *gin.Engine) {
 	ac.AuthenticationService = &implementations.AuthenticationService{}
 	println("initializing Authentication Controller")
 	go ac.AuthenticationService.Start()
