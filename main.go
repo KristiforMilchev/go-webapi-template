@@ -1,6 +1,15 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/gin-gonic/gin"
 
 	implementations "leanmeal/api/Implementations"
@@ -36,5 +45,31 @@ func startServer(Configuration interfaces.Configuration) {
 
 	authController.Init(router)
 
-	router.Run(port)
+	srv := &http.Server{
+		Addr:    port,
+		Handler: router,
+	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %s\n", err)
+		}
+	}()
+
+	quit := make(chan os.Signal)
+
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	got := <-quit
+	fmt.Println(got)
+	log.Println("Shutdown Server ...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal("Server Shutdown:", err)
+	}
+
+	connectionDone := <-ctx.Done()
+	fmt.Println(connectionDone)
+	log.Println("Server exiting")
 }
