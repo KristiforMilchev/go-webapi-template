@@ -22,10 +22,22 @@ func main() {
 func startServer(Configuration interfaces.Configuration) {
 	port := Configuration.GetKey("Port").(string)
 
+	jwt := implementations.JwtService{}
+
+	jwt.Secret = Configuration.GetKey("jwt-key").(string)
+	jwt.Issuer = Configuration.GetKey("jwt-issuer").(string)
+
 	var customers implementations.CustomerService
 	TestService(&customers)
+	connectionString := Configuration.GetKey("ConnectionString").(string)
 
-	authController := &routes.AuthenticationController{}
+	authController := &routes.AuthenticationController{
+		JwtService: &jwt,
+		Storage: &implementations.Storage{
+			ConnectionString: connectionString,
+		},
+	}
+
 	router := gin.New()
 	router.Use(middlewhere.Authorize())
 

@@ -1,9 +1,13 @@
 package interfaces
 
-import "leanmeal/api/dtos"
+import (
+	"github.com/google/uuid"
+
+	"leanmeal/api/dtos"
+)
 
 type AuthenticationService interface {
 	Start()
-	GetMessage(email string) dtos.InitAuthReponse
-	VerifySignature(response dtos.FinishAuthResponse) bool
+	GetMessage(email *string, id *uuid.UUID) dtos.InitAuthReponse
+	VerifySignature(response dtos.FinishAuthResponse, keys *[]string) (uuid.UUID, error)
 }

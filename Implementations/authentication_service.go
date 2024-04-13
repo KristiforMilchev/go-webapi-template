@@ -1,6 +1,7 @@
 package implementations
 
 import (
+	"crypto/ed25519"
 	"crypto/rand"
 	"fmt"
 	"math/big"
@@ -16,25 +17,24 @@ type AuthenticationService struct {
 	AuthRequests map[uuid.UUID]dtos.StoredAuthRequest
 }
 
-func (authService *AuthenticationService) GetMessage(email string) dtos.InitAuthReponse {
+func (authService *AuthenticationService) GetMessage(email *string, id *uuid.UUID) dtos.InitAuthReponse {
 
 	if authService.AuthRequests == nil {
 		authService.AuthRequests = make(map[uuid.UUID]dtos.StoredAuthRequest)
 	}
 
-	id := uuid.New()
 	uuid := uuid.New()
 	code := generateRandomString(32)
 
 	authResponse := dtos.StoredAuthRequest{
-		Id:   id,
-		Name: email,
+		Id:   *id,
+		Name: *email,
 		Code: code,
 		Uuid: uuid.String(),
 		Time: time.Time{}.Add(time.Duration(time.Second * 30)),
 	}
 
-	authService.AuthRequests[id] = authResponse
+	authService.AuthRequests[uuid] = authResponse
 
 	fmt.Println(&authService.AuthRequests)
 
@@ -46,9 +46,17 @@ func (authService *AuthenticationService) GetMessage(email string) dtos.InitAuth
 	return response
 }
 
-func (authService *AuthenticationService) VerifySignature(response dtos.FinishAuthResponse) bool {
+func (authService *AuthenticationService) VerifySignature(response dtos.FinishAuthResponse, keys *[]string) (uuid.UUID, error) {
+	authRequest := authService.AuthRequests[response.Uuid]
+	messege := authRequest.Code
+	for _, key := range *keys {
+		isValid := ed25519.Verify([]byte(key), []byte(messege), []byte(response.Signature))
+		if isValid {
+			return authRequest.Id, nil
+		}
+	}
 
-	return true
+	return uuid.Nil, nil
 }
 
 func (authService *AuthenticationService) Start() {

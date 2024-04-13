@@ -1,6 +1,8 @@
 package dtos
 
+import "github.com/google/uuid"
+
 type FinishAuthResponse struct {
-	Uuid      string
+	Uuid      uuid.UUID
 	Signature string
 }
