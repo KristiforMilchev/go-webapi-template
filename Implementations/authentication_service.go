@@ -3,6 +3,7 @@ package implementations
 import (
 	"crypto/ed25519"
 	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"math/big"
 	"os"
@@ -46,11 +47,31 @@ func (authService *AuthenticationService) GetMessage(email *string, id *uuid.UUI
 	return response
 }
 
+func (authService *AuthenticationService) GetRequestById(id uuid.UUID) uuid.UUID {
+	return authService.AuthRequests[id].Id
+}
+
 func (authService *AuthenticationService) VerifySignature(response dtos.FinishAuthResponse, keys *[]string) (uuid.UUID, error) {
 	authRequest := authService.AuthRequests[response.Uuid]
 	messege := authRequest.Code
 	for _, key := range *keys {
-		isValid := ed25519.Verify([]byte(key), []byte(messege), []byte(response.Signature))
+		pk, err := base64.StdEncoding.DecodeString(key)
+
+		if err != nil {
+			fmt.Println("Failed to decode public key")
+			fmt.Println(err)
+			return uuid.UUID{}, err
+		}
+
+		decodedSignature, err := base64.StdEncoding.DecodeString(response.Signature)
+
+		if err != nil {
+			fmt.Println("Failed to decode Signature")
+			fmt.Println(err)
+			return uuid.UUID{}, err
+		}
+
+		isValid := ed25519.Verify(pk, []byte(messege), decodedSignature)
 		if isValid {
 			return authRequest.Id, nil
 		}

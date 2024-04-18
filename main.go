@@ -32,18 +32,27 @@ func startServer(Configuration interfaces.Configuration) {
 	jwt.Secret = Configuration.GetKey("jwt-key").(string)
 	jwt.Issuer = Configuration.GetKey("jwt-issuer").(string)
 	connectionString := Configuration.GetKey("ConnectionString").(string)
+	storage := implementations.Storage{
+		ConnectionString: connectionString,
+	}
+
+	authMiddlewhere := middlewhere.AuthenticationMiddlewhere{
+		JwtService: &jwt,
+	}
 
 	authController := &routes.AuthenticationController{
 		JwtService: &jwt,
-		Storage: &implementations.Storage{
-			ConnectionString: connectionString,
-		},
+		Storage:    &storage,
+	}
+	accountsController := &routes.AccountsController{
+		Storage: &storage,
 	}
 
 	router := gin.New()
-	router.Use(middlewhere.Authorize())
+	v1 := router.Group("/v1")
 
-	authController.Init(router)
+	authController.Init(v1)
+	accountsController.Init(v1, &authMiddlewhere)
 
 	srv := &http.Server{
 		Addr:    port,
